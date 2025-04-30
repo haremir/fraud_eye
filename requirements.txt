@@ -1,0 +1,40 @@
+fraud-detection/
+│
+├── data/                          # Veriler
+│   ├── raw/                       # Orijinal CSV
+│   └── processed/                 # Ön işlenmiş veriler
+│
+├── models/                        # Eğitilmiş modeller (.pkl, .h5)
+│   ├── xgboost_v1.pkl             # Versiyonlu kayıt
+│   └── preprocessing_pipeline.pkl
+│
+├── notebooks/                     # Tüm denemeler
+│   ├── 01_eda.ipynb               # Keşifsel analiz
+│   ├── 02_preprocessing.ipynb     # Ön işleme testleri
+│   ├── 03_xgboost_training.ipynb  # Model eğitimi
+│   └── 04_evaluation.ipynb        # Metrik raporlama
+│
+├── src/                           # Modüler kodlar
+│   ├── models/                    # Algoritma implementasyonları
+│   │   ├── xgboost.py             # train_xgboost(), evaluate_xgboost()
+│   │   ├── logistic_regression.py
+│   │   └── base_model.py          # Ortak fonksiyonlar
+│   │
+│   ├── preprocessing/             # Ön işleme
+│   │   ├── feature_engineering.py # Özellik çıkarımı
+│   │   └── pipeline.py            # FraudPreprocessor sınıfı
+│   │
+│   ├── utils/                     # Yardımcı araçlar
+│   │   ├── logger.py              # Loglama fonksiyonları
+│   │   └── visualizations.py      # Grafik üretme
+│   │
+│   ├── config.py                  # Hyperparametreler
+│   └── constants.py               # Sabit değerler
+│
+├── reports/                       # Çıktılar
+│   ├── figures/                   # Grafikler (ROC, Confusion Matrix)
+│   └── metrics/                   # Performans kayıtları
+│
+├── .gitignore                     # data/, models/, .ipynb_checkpoints ignorela
+├── requirements.txt               # Kütüphaneler
+└── README.md                      # Proje açıklaması
