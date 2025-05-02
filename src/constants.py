@@ -30,6 +30,12 @@ CLASS_COLUMN = "Class"
 FEATURE_COLUMNS = [f"V{i}" for i in range(1, 29)]
 NUMERIC_COLUMNS = [TIME_COLUMN, AMOUNT_COLUMN] + FEATURE_COLUMNS
 
+# Preprocessing için sabitler (Yeni ekledik)
+TARGET = CLASS_COLUMN
+NUMERICAL_FEATURES = NUMERIC_COLUMNS
+CATEGORICAL_FEATURES = []  # Bu veri setinde kategorik değişken yok
+ID_FEATURES = []  # ID özelliği yok
+
 # Sınıf değerleri
 NORMAL_CLASS = "0"
 FRAUD_CLASS = "1"

@@ -1,0 +1,23 @@
+2025-05-02 17:04:19,994 | INFO | pipeline.py:31 | Initialized FraudPreprocessor
+2025-05-02 17:04:20,185 | INFO | pipeline.py:43 | Preprocessing data (training mode)
+2025-05-02 17:04:20,206 | INFO | feature_engineering.py:23 | Handling missing values with strategy: median
+2025-05-02 17:04:20,222 | INFO | feature_engineering.py:44 | No missing values found in the dataset
+2025-05-02 17:04:20,226 | INFO | feature_engineering.py:100 | Creating time-based features
+2025-05-02 17:04:20,267 | INFO | feature_engineering.py:122 | Created time-based features: hour_of_day, day_of_week, is_weekend
+2025-05-02 17:04:20,271 | INFO | feature_engineering.py:135 | Creating amount-based features
+2025-05-02 17:04:20,379 | INFO | feature_engineering.py:159 | Created amount-based features
+2025-05-02 17:04:20,384 | INFO | feature_engineering.py:59 | Scaling features using standard scaler
+2025-05-02 17:04:20,517 | INFO | feature_engineering.py:87 | Scaled 30 features
+2025-05-02 17:04:20,522 | INFO | pipeline.py:97 | Preprocessing complete. Output shape: (227845, 41)
+2025-05-02 17:04:20,522 | INFO | pipeline.py:43 | Preprocessing data (inference mode)
+2025-05-02 17:04:20,525 | INFO | feature_engineering.py:23 | Handling missing values with strategy: median
+2025-05-02 17:04:20,532 | INFO | feature_engineering.py:44 | No missing values found in the dataset
+2025-05-02 17:04:20,533 | INFO | feature_engineering.py:100 | Creating time-based features
+2025-05-02 17:04:20,545 | INFO | feature_engineering.py:122 | Created time-based features: hour_of_day, day_of_week, is_weekend
+2025-05-02 17:04:20,547 | INFO | feature_engineering.py:135 | Creating amount-based features
+2025-05-02 17:04:20,576 | INFO | feature_engineering.py:159 | Created amount-based features
+2025-05-02 17:04:20,597 | INFO | pipeline.py:97 | Preprocessing complete. Output shape: (56962, 41)
+2025-05-02 17:04:21,081 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-02 17:04:21,105 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-02 17:04:32,032 | INFO | pipeline.py:132 | Preprocessor saved to ../models/preprocessing_pipeline.pkl
+2025-05-02 17:14:56,025 | INFO | pipeline.py:132 | Preprocessor saved to ..\models\preprocessing_pipeline.pkl
