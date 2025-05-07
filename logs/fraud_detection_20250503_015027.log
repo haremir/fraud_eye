@@ -1,0 +1,22 @@
+2025-05-03 01:53:46,732 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-03 01:53:46,745 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-03 01:53:46,759 | INFO | 3835727627.py:1 | XGBoost modeli eðitiliyor...
+2025-05-03 01:54:22,055 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-03 01:54:22,063 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-03 01:54:22,077 | INFO | 1585683291.py:1 | XGBoost modeli eðitiliyor...
+2025-05-03 01:54:22,077 | INFO | 1585683291.py:1 | XGBoost modeli eðitiliyor...
+2025-05-03 01:54:22,080 | INFO | base_model.py:29 | Initialized xgboost model
+2025-05-03 01:54:22,081 | INFO | xgboost.py:31 | Training XGBoost model with 68235 samples
+2025-05-03 01:54:24,035 | INFO | xgboost.py:63 | XGBoost model training completed
+2025-05-03 01:54:24,038 | INFO | xgboost.py:71 | Making predictions on 68235 samples
+2025-05-03 01:54:24,142 | INFO | xgboost.py:80 | Making probability predictions on 68235 samples
+2025-05-03 01:54:35,886 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-03 01:54:35,893 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-03 01:54:35,907 | INFO | 1585683291.py:1 | XGBoost modeli eðitiliyor...
+2025-05-03 01:54:35,907 | INFO | 1585683291.py:1 | XGBoost modeli eðitiliyor...
+2025-05-03 01:54:35,907 | INFO | 1585683291.py:1 | XGBoost modeli eðitiliyor...
+2025-05-03 01:54:35,908 | INFO | base_model.py:29 | Initialized xgboost model
+2025-05-03 01:54:35,909 | INFO | xgboost.py:31 | Training XGBoost model with 68235 samples
+2025-05-03 01:54:37,618 | INFO | xgboost.py:63 | XGBoost model training completed
+2025-05-03 01:54:37,622 | INFO | xgboost.py:71 | Making predictions on 68235 samples
+2025-05-03 01:54:37,723 | INFO | xgboost.py:80 | Making probability predictions on 68235 samples

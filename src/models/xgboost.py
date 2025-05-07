@@ -1,30 +1,28 @@
-"""
-XGBoost model implementation for fraud detection.
-"""
-
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, precision_recall_curve, auc
+from sklearn.metrics import (
+    classification_report, confusion_matrix, roc_auc_score, 
+    precision_recall_curve, auc
+)
 import joblib
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from src.utils.logger import get_logger
+from src.utils.logger import setup_logger
 from src.base_model import BaseModel
 import src.config as config
 import src.constants as constants
 
-logger = get_logger(__name__)
+logger = setup_logger(__name__)
 
 class XGBoostModel(BaseModel):
     """XGBoost implementation for fraud detection."""
     
     def __init__(self, params=None):
         """Initialize XGBoost model with parameters."""
-        super().__init__()
-        self.model_name = "xgboost"
+        super().__init__(model_name="xgboost")
         self.params = params or config.XGBOOST_PARAMS
         self.model = None
         
@@ -74,50 +72,17 @@ class XGBoostModel(BaseModel):
         dtest = xgb.DMatrix(X)
         return self.model.predict(dtest)
     
-    def save(self, filepath):
-        """Save model to disk."""
-        if self.model is None:
-            raise ValueError("No model to save")
-        
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        joblib.dump(self.model, filepath)
-        logger.info(f"Model saved to {filepath}")
-    
-    def load(self, filepath):
-        """Load model from disk."""
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Model file not found: {filepath}")
-        
-        self.model = joblib.load(filepath)
-        logger.info(f"Model loaded from {filepath}")
-        return self
-    
-    def feature_importance(self, feature_names=None, top_n=20, plot=True, figsize=(12, 8)):
-        """Get and optionally plot feature importance."""
+    def predict_proba(self, X):
+        """Make probability predictions with trained model."""
         if self.model is None:
             raise ValueError("Model has not been trained yet")
-            
-        importance = self.model.get_score(importance_type='gain')
         
-        if feature_names is None:
-            feature_names = list(importance.keys())
-        
-        # Convert to DataFrame for easier manipulation
-        importance_df = pd.DataFrame({
-            'Feature': list(importance.keys()),
-            'Importance': list(importance.values())
-        })
-        importance_df = importance_df.sort_values('Importance', ascending=False).head(top_n)
-        
-        if plot:
-            plt.figure(figsize=figsize)
-            sns.barplot(x='Importance', y='Feature', data=importance_df)
-            plt.title(f'Top {top_n} Feature Importance (gain)')
-            plt.tight_layout()
-            plt.savefig(os.path.join(constants.REPORTS_FIGURES_DIR, 'xgboost_feature_importance.png'))
-            plt.close()
-        
-        return importance_df
+        logger.info(f"Making probability predictions on {X.shape[0]} samples")
+        dtest = xgb.DMatrix(X)
+        probas = self.model.predict(dtest)
+        # XGBoost returns only positive class probabilities
+        # We need to convert to the format expected by scikit-learn (both classes)
+        return np.vstack((1 - probas, probas)).T
     
     def evaluate(self, X_test, y_test, threshold=0.5):
         """Evaluate model performance."""
@@ -145,7 +110,11 @@ class XGBoostModel(BaseModel):
             'classification_report': class_report,
             'roc_auc': roc_auc,
             'pr_auc': pr_auc,
-            'threshold': threshold
+            'threshold': threshold,
+            'accuracy': class_report['accuracy'],
+            'precision': class_report['1']['precision'],
+            'recall': class_report['1']['recall'],
+            'f1': class_report['1']['f1-score']
         }
         
         # Log results
@@ -170,12 +139,15 @@ class XGBoostModel(BaseModel):
         plt.figure(figsize=(10, 8))
         sns.heatmap(results['confusion_matrix'], annot=True, fmt='d', cmap='Blues',
                    xticklabels=['Normal', 'Fraud'], yticklabels=['Normal', 'Fraud'])
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-        plt.title('Confusion Matrix')
+        plt.xlabel('Tahmin Edilen Sınıf')
+        plt.ylabel('Gerçek Sınıf')
+        plt.title('Confusion Matrix - XGBoost')
         plt.tight_layout()
-        plt.savefig(os.path.join(constants.REPORTS_FIGURES_DIR, 'xgboost_confusion_matrix.png'))
-        plt.close()
+        
+        reports_dir = constants.REPORTS_FIGURES_DIR
+        os.makedirs(reports_dir, exist_ok=True)
+        plt.savefig(os.path.join(reports_dir, 'xgboost_confusion_matrix.png'))
+        plt.show()
         
         # Plot ROC curve
         dtest = xgb.DMatrix(X_test)
@@ -189,11 +161,12 @@ class XGBoostModel(BaseModel):
         plt.plot([0, 1], [0, 1], 'k--')
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('ROC Curve')
-        plt.legend(loc='lower right')
+        plt.title('ROC Curve - XGBoost')
+        plt.legend(loc="lower right")
         plt.grid(True)
-        plt.savefig(os.path.join(constants.REPORTS_FIGURES_DIR, 'xgboost_roc_curve.png'))
-        plt.close()
+        plt.savefig(os.path.join(reports_dir, 'xgboost_roc_curve.png'))
+        plt.tight_layout()
+        plt.show()
         
         # Plot Precision-Recall curve
         precision, recall, _ = precision_recall_curve(y_test, y_pred_proba)
@@ -202,13 +175,54 @@ class XGBoostModel(BaseModel):
         plt.plot(recall, precision, label=f'PR AUC = {results["pr_auc"]:.4f}')
         plt.xlabel('Recall')
         plt.ylabel('Precision')
-        plt.title('Precision-Recall Curve')
-        plt.legend(loc='lower left')
+        plt.title('Precision-Recall Curve - XGBoost')
+        plt.legend(loc="lower left")
         plt.grid(True)
-        plt.savefig(os.path.join(constants.REPORTS_FIGURES_DIR, 'xgboost_pr_curve.png'))
-        plt.close()
+        plt.savefig(os.path.join(reports_dir, 'xgboost_pr_curve.png'))
+        plt.tight_layout()
+        plt.show()
         
         return results
+    
+    def get_feature_importance(self, feature_names=None, plot=True, top_n=20, figsize=(12, 8)):
+        """Get and optionally plot feature importance."""
+        if self.model is None:
+            raise ValueError("Model has not been trained yet")
+            
+        importance = self.model.get_score(importance_type='gain')
+        
+        if feature_names is not None:
+            # Map numerical features to feature names if provided
+            mapped_importance = {}
+            for feat_idx, importance_val in importance.items():
+                # XGBoost uses f0, f1, ... format for features
+                if feat_idx.startswith('f'):
+                    idx = int(feat_idx[1:])
+                    if idx < len(feature_names):
+                        mapped_importance[feature_names[idx]] = importance_val
+                else:
+                    mapped_importance[feat_idx] = importance_val
+            importance = mapped_importance
+        
+        # Convert to DataFrame for easier manipulation
+        importance_df = pd.DataFrame({
+            'feature': list(importance.keys()),
+            'importance': list(importance.values())
+        })
+        importance_df = importance_df.sort_values('importance', ascending=False).head(top_n)
+        
+        if plot:
+            plt.figure(figsize=figsize)
+            sns.barplot(x='importance', y='feature', data=importance_df)
+            plt.title(f'Top {top_n} Feature Importance (gain)')
+            plt.tight_layout()
+            
+            reports_dir = constants.REPORTS_FIGURES_DIR
+            os.makedirs(reports_dir, exist_ok=True)
+            plt.savefig(os.path.join(reports_dir, 'xgboost_feature_importance.png'))
+            plt.show()
+        
+        return importance_df
 
 
 def train_xgboost(X_train, y_train, X_val=None, y_val=None, params=None):
