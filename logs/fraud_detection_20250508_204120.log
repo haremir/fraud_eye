@@ -1,0 +1,34 @@
+2025-05-08 20:41:21,840 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-08 20:41:21,845 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-08 20:41:21,856 | INFO | 304028296.py:2 | XGBoost modeli eðitiliyor...
+2025-05-08 20:41:21,857 | INFO | base_model.py:29 | Initialized xgboost model
+2025-05-08 20:41:21,857 | INFO | xgboost.py:31 | Training XGBoost model with 68235 samples
+2025-05-08 20:41:47,228 | INFO | xgboost.py:60 | XGBoost model training completed
+2025-05-08 20:41:47,231 | INFO | xgboost.py:68 | Making predictions on 68235 samples
+2025-05-08 20:41:47,513 | INFO | xgboost.py:68 | Making predictions on 56962 samples
+2025-05-08 20:41:48,432 | INFO | 3948134325.py:1 | Lojistik Regresyon modeli eðitiliyor...
+2025-05-08 20:41:48,433 | INFO | base_model.py:29 | Initialized logistic_regression model
+2025-05-08 20:41:48,434 | INFO | logistic_regression.py:36 | Training Logistic Regression model with 68235 samples
+2025-05-08 20:41:49,099 | INFO | logistic_regression.py:39 | Logistic Regression model training completed
+2025-05-08 20:41:49,100 | INFO | logistic_regression.py:47 | Making predictions on 68235 samples
+2025-05-08 20:41:49,114 | INFO | logistic_regression.py:55 | Making probability predictions on 68235 samples
+2025-05-08 20:41:49,147 | INFO | logistic_regression.py:47 | Making predictions on 56962 samples
+2025-05-08 20:41:49,160 | INFO | logistic_regression.py:55 | Making probability predictions on 56962 samples
+2025-05-08 20:48:42,784 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-08 20:48:42,789 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-08 20:48:42,800 | INFO | 304028296.py:2 | XGBoost modeli eðitiliyor...
+2025-05-08 20:48:42,800 | INFO | 304028296.py:2 | XGBoost modeli eðitiliyor...
+2025-05-08 20:48:42,801 | INFO | base_model.py:29 | Initialized xgboost model
+2025-05-08 20:48:42,801 | INFO | xgboost.py:31 | Training XGBoost model with 68235 samples
+2025-05-08 20:49:08,185 | INFO | xgboost.py:60 | XGBoost model training completed
+2025-05-08 20:49:08,189 | INFO | xgboost.py:68 | Making predictions on 68235 samples
+2025-05-08 20:49:08,465 | INFO | xgboost.py:68 | Making predictions on 56962 samples
+2025-05-08 20:49:09,376 | INFO | 3948134325.py:1 | Lojistik Regresyon modeli eðitiliyor...
+2025-05-08 20:49:09,376 | INFO | 3948134325.py:1 | Lojistik Regresyon modeli eðitiliyor...
+2025-05-08 20:49:09,378 | INFO | base_model.py:29 | Initialized logistic_regression model
+2025-05-08 20:49:09,378 | INFO | logistic_regression.py:36 | Training Logistic Regression model with 68235 samples
+2025-05-08 20:49:10,049 | INFO | logistic_regression.py:39 | Logistic Regression model training completed
+2025-05-08 20:49:10,050 | INFO | logistic_regression.py:47 | Making predictions on 68235 samples
+2025-05-08 20:49:10,064 | INFO | logistic_regression.py:55 | Making probability predictions on 68235 samples
+2025-05-08 20:49:10,096 | INFO | logistic_regression.py:47 | Making predictions on 56962 samples
+2025-05-08 20:49:10,108 | INFO | logistic_regression.py:55 | Making probability predictions on 56962 samples

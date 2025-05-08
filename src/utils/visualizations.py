@@ -1,238 +1,466 @@
-"""
-Visualization utilities for fraud detection project.
-Contains functions to generate plots for EDA and model evaluation.
-"""
-
-import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix, roc_curve, precision_recall_curve, auc
-from src.utils.logger import setup_logger
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import (
+    confusion_matrix, roc_curve, auc, precision_recall_curve,
+    average_precision_score, roc_auc_score
+)
+import io
+import re
+from typing import List, Dict, Union, Tuple, Optional
 
-logger = setup_logger("visualizations")
 
-def plot_class_distribution(y, title="Class Distribution"):
+def classification_report_to_dataframe(report: str) -> pd.DataFrame:
     """
-    Plot the distribution of classes in the target variable.
+    Sklearn classification_report string çıktısını DataFrame'e dönüştürür.
     
     Args:
-        y (pd.Series): Target variable
-        title (str): Plot title
+        report (str): sklearn.metrics.classification_report() fonksiyonunun çıktısı
+        
+    Returns:
+        pd.DataFrame: Report içeriğini içeren DataFrame
     """
-    plt.figure(figsize=(10, 6))
-    class_counts = pd.Series(y).value_counts().sort_index()
-    sns.barplot(x=class_counts.index, y=class_counts.values)
-    plt.title(title)
-    plt.xlabel("Class")
-    plt.ylabel("Count")
+    report_data = []
+    lines = report.split('\n')
     
-    # Add percentage labels
-    total = len(y)
-    for i, count in enumerate(class_counts.values):
-        percentage = 100 * count / total
-        plt.text(i, count + 5, f"{percentage:.2f}%", ha='center')
+    for line in lines[2:-3]:  # Header ve footer satırlarını atlayalım
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Satırı parçalara ayıralım
+        row_data = re.split(r'\s+', line)
+        
+        if len(row_data) < 5:  # Eksik değerler varsa atlayalım
+            continue
+            
+        class_name = row_data[0]
+        precision = float(row_data[1])
+        recall = float(row_data[2])
+        f1_score = float(row_data[3])
+        support = int(row_data[4])
+        
+        report_data.append({
+            'class': class_name,
+            'precision': precision,
+            'recall': recall,
+            'f1-score': f1_score,
+            'support': support
+        })
     
-    plt.tight_layout()
-    logger.info(f"Generated class distribution plot")
-    return plt.gcf()
+    # 'accuracy', 'macro avg' ve 'weighted avg' satırlarını ekleyelim
+    for line in lines[-3:]:
+        line = line.strip()
+        if not line:
+            continue
+            
+        row_data = re.split(r'\s+', line, maxsplit=1)
+        
+        if len(row_data) < 2:
+            continue
+            
+        class_name = row_data[0]
+        
+        # Geri kalan sayıları ayıralım
+        numbers = re.findall(r'\d+\.\d+|\d+', row_data[1])
+        
+        if len(numbers) >= 3:
+            precision = float(numbers[0]) if numbers[0] != 'nan' else np.nan
+            recall = float(numbers[1]) if numbers[1] != 'nan' else np.nan
+            f1_score = float(numbers[2]) if numbers[2] != 'nan' else np.nan
+            
+            if len(numbers) >= 4:
+                support = int(float(numbers[3]))
+            else:
+                support = np.nan
+                
+            report_data.append({
+                'class': class_name,
+                'precision': precision,
+                'recall': recall,
+                'f1-score': f1_score,
+                'support': support
+            })
+    
+    return pd.DataFrame(report_data)
 
-def plot_correlation_matrix(X, title="Feature Correlation Matrix", figsize=(12, 10)):
+
+def plot_confusion_matrix(y_true, y_pred, class_names=['Normal', 'Fraud'], title='Confusion Matrix', 
+                        figsize=(8, 6), normalize=False):
     """
-    Plot correlation matrix for input features.
+    Karmaşıklık matrisini görselleştirir.
     
     Args:
-        X (pd.DataFrame): Feature dataframe
-        title (str): Plot title
-        figsize (tuple): Figure size
-    """
-    plt.figure(figsize=figsize)
-    corr_matrix = X.corr()
-    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
-    
-    cmap = sns.diverging_palette(230, 20, as_cmap=True)
-    sns.heatmap(corr_matrix, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
-                square=True, linewidths=.5, annot=False, fmt='.2f')
-    
-    plt.title(title)
-    plt.tight_layout()
-    logger.info(f"Generated correlation matrix plot with {X.shape[1]} features")
-    return plt.gcf()
-
-def plot_feature_importance(model, feature_names, top_n=20, title="Feature Importance"):
-    """
-    Plot feature importance for tree-based models.
-    
-    Args:
-        model: Trained model with feature_importances_ attribute
-        feature_names (list): List of feature names
-        top_n (int): Number of top features to display
-        title (str): Plot title
-    """
-    try:
-        importances = model.feature_importances_
-    except AttributeError:
-        logger.warning("Model doesn't have feature_importances_ attribute")
-        return None
-    
-    indices = np.argsort(importances)[::-1]
-    top_indices = indices[:top_n]
-    
-    plt.figure(figsize=(10, 8))
-    plt.title(title)
-    plt.bar(range(top_n), importances[top_indices])
-    plt.xticks(range(top_n), [feature_names[i] for i in top_indices], rotation=90)
-    plt.tight_layout()
-    logger.info(f"Generated feature importance plot showing top {top_n} features")
-    return plt.gcf()
-
-def plot_confusion_matrix(y_true, y_pred, title="Confusion Matrix", normalize=True):
-    """
-    Plot confusion matrix for binary classification.
-    
-    Args:
-        y_true (array): True labels
-        y_pred (array): Predicted labels
-        title (str): Plot title
-        normalize (bool): Whether to normalize the confusion matrix
+        y_true (array): Gerçek etiketler
+        y_pred (array): Tahmin edilen etiketler
+        class_names (list): Sınıf isimleri
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        normalize (bool): Normalize edilsin mi?
+        
+    Returns:
+        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
     """
     cm = confusion_matrix(y_true, y_pred)
-    plt.figure(figsize=(8, 6))
     
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        fmt = '.2%'
+        fmt = '.2f'
     else:
         fmt = 'd'
     
-    sns.heatmap(cm, annot=True, fmt=fmt, cmap='Blues', cbar=False,
-                xticklabels=['Non-Fraud (0)', 'Fraud (1)'],
-                yticklabels=['Non-Fraud (0)', 'Fraud (1)'])
-    
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
+    plt.figure(figsize=figsize)
+    sns.heatmap(cm, annot=True, fmt=fmt, cmap='Blues',
+               xticklabels=class_names,
+               yticklabels=class_names)
     plt.title(title)
+    plt.ylabel('Gerçek Sınıf')
+    plt.xlabel('Tahmin Edilen Sınıf')
     plt.tight_layout()
-    logger.info(f"Generated confusion matrix plot")
+    
     return plt.gcf()
 
-def plot_roc_curve(y_true, y_pred_proba, title="ROC Curve"):
+
+def plot_roc_curve(y_true, y_proba, title='ROC Curve', figsize=(8, 6)):
     """
-    Plot ROC curve for binary classification.
+    ROC eğrisini çizer.
     
     Args:
-        y_true (array): True labels
-        y_pred_proba (array): Predicted probabilities for the positive class
-        title (str): Plot title
+        y_true (array): Gerçek etiketler
+        y_proba (array): Pozitif sınıf olasılıkları
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        tuple: (Figure, AUC değeri)
     """
-    fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
+    fpr, tpr, _ = roc_curve(y_true, y_proba)
     roc_auc = auc(fpr, tpr)
     
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.figure(figsize=figsize)
+    plt.plot(fpr, tpr, label=f'ROC AUC = {roc_auc:.4f}')
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(title)
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    plt.tight_layout()
+    
+    return plt.gcf(), roc_auc
+
+
+def plot_precision_recall_curve(y_true, y_proba, title='Precision-Recall Curve', figsize=(8, 6)):
+    """
+    Kesinlik-Duyarlılık eğrisini çizer.
+    
+    Args:
+        y_true (array): Gerçek etiketler
+        y_proba (array): Pozitif sınıf olasılıkları
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        tuple: (Figure, PR AUC değeri)
+    """
+    precision, recall, _ = precision_recall_curve(y_true, y_proba)
+    pr_auc = auc(recall, precision)
+    
+    plt.figure(figsize=figsize)
+    plt.plot(recall, precision, label=f'PR AUC = {pr_auc:.4f}')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title(title)
+    plt.legend(loc="upper right")
+    plt.grid(True)
+    plt.tight_layout()
+    
+    return plt.gcf(), pr_auc
+
+
+def plot_classification_report(report, title='Sınıflandırma Raporu', figsize=(12, 7)):
+    """
+    Sınıflandırma raporunu görselleştirir.
+    
+    Args:
+        report (str): Sklearn classification_report çıktısı
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        tuple: (Heatmap Figure, Bar Plot Figure)
+    """
+    # Raporu DataFrame'e dönüştür
+    report_df = classification_report_to_dataframe(report)
+    
+    # 1. Isı Haritası (Heatmap)
+    plt.figure(figsize=figsize)
+    
+    # Isı haritası için değerleri hazırlayalım
+    metrics_df = report_df.copy()
+    metrics_df = metrics_df.set_index('class')
+    metrics_df = metrics_df[['precision', 'recall', 'f1-score']]
+    
+    # NaN değerleri 0 ile dolduralım (görselleştirme için)
+    metrics_df = metrics_df.fillna(0)
+    
+    # Isı haritası
+    ax = sns.heatmap(metrics_df, annot=True, cmap="YlGnBu", fmt='.2f', 
+                    linewidths=.5, vmin=0, vmax=1)
+    plt.title(f'{title}', fontsize=14)
+    plt.ylabel('Sınıf')
+    plt.xlabel('Metrikler')
+    
+    # Support değerlerini ekleyelim
+    for i, (_, row) in enumerate(report_df.iterrows()):
+        plt.text(3.2, i + 0.5, f"Support: {row['support']}", 
+                 va='center', ha='left', fontsize=9)
+    
+    plt.tight_layout()
+    heatmap_fig = plt.gcf()
+    
+    # 2. Çubuk Grafik (Bar Plot)
+    plt.figure(figsize=figsize)
+    
+    # Uzun format DataFrame'e dönüştürme
+    metrics_long = pd.melt(report_df, 
+                          id_vars=['class', 'support'],
+                          value_vars=['precision', 'recall', 'f1-score'],
+                          var_name='metric', 
+                          value_name='value')
+    
+    # NaN değerlerini filtreleyebiliriz
+    metrics_long = metrics_long.dropna(subset=['value'])
+    
+    # Çubuk grafik
+    sns.barplot(x='class', y='value', hue='metric', data=metrics_long, palette='viridis')
+    plt.title(f'{title} - Metrikler', fontsize=14)
+    plt.ylabel('Değer', fontsize=12)
+    plt.xlabel('Sınıf', fontsize=12)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.legend(title='Metrik')
+    
+    # Support değerlerini ekleyelim
+    for i, cls in enumerate(report_df['class'].unique()):
+        support = report_df[report_df['class'] == cls]['support'].values[0]
+        plt.text(i, -0.05, f"Support: {support}", ha='center', fontsize=9)
+    
+    plt.ylim(0, 1.1)
+    plt.tight_layout()
+    barplot_fig = plt.gcf()
+    
+    return heatmap_fig, barplot_fig
+
+
+def plot_model_comparison_roc(models_dict, X_test, y_test, title='Model Karşılaştırması - ROC', figsize=(10, 8)):
+    """
+    Birden fazla modelin ROC eğrilerini karşılaştırır.
+    
+    Args:
+        models_dict (dict): {model_adı: model_nesnesi} şeklinde sözlük
+        X_test (array): Test verileri
+        y_test (array): Test etiketleri
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
+    """
+    plt.figure(figsize=figsize)
+    
+    for model_name, model in models_dict.items():
+        # Model tipine göre tahmin fonksiyonunu ayarlayalım
+        if hasattr(model, 'predict_proba'):
+            y_proba = model.predict_proba(X_test)[:, 1]
+        else:
+            y_proba = model.predict(X_test)
+        
+        fpr, tpr, _ = roc_curve(y_test, y_proba)
+        roc_auc = auc(fpr, tpr)
+        plt.plot(fpr, tpr, lw=2, label=f'{model_name} (AUC = {roc_auc:.4f})')
+    
+    # Tesadüfi tahmin için çizgi
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title(title)
     plt.legend(loc="lower right")
-    plt.tight_layout()
-    logger.info(f"Generated ROC curve plot with AUC: {roc_auc:.3f}")
-    return plt.gcf(), roc_auc
+    plt.grid(True)
+    
+    return plt.gcf()
 
-def plot_precision_recall_curve(y_true, y_pred_proba, title="Precision-Recall Curve"):
+
+def plot_model_comparison_pr(models_dict, X_test, y_test, title='Model Karşılaştırması - PR', figsize=(10, 8)):
     """
-    Plot precision-recall curve for binary classification.
+    Birden fazla modelin Precision-Recall eğrilerini karşılaştırır.
     
     Args:
-        y_true (array): True labels
-        y_pred_proba (array): Predicted probabilities for the positive class
-        title (str): Plot title
+        models_dict (dict): {model_adı: model_nesnesi} şeklinde sözlük
+        X_test (array): Test verileri
+        y_test (array): Test etiketleri
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
     """
-    precision, recall, _ = precision_recall_curve(y_true, y_pred_proba)
-    pr_auc = auc(recall, precision)
+    plt.figure(figsize=figsize)
     
-    plt.figure(figsize=(8, 6))
-    plt.plot(recall, precision, color='darkorange', lw=2, 
-             label=f'Precision-Recall curve (AUC = {pr_auc:.3f})')
+    for model_name, model in models_dict.items():
+        # Model tipine göre tahmin fonksiyonunu ayarlayalım
+        if hasattr(model, 'predict_proba'):
+            y_proba = model.predict_proba(X_test)[:, 1]
+        else:
+            y_proba = model.predict(X_test)
+        
+        precision, recall, _ = precision_recall_curve(y_test, y_proba)
+        avg_precision = average_precision_score(y_test, y_proba)
+        plt.step(recall, precision, where='post', lw=2, 
+                 label=f'{model_name} (AP = {avg_precision:.4f})')
+    
+    # Rastgele sınıflandırıcı için çizgi (veri setinin ortalama pozitif oranı)
+    plt.axhline(y=np.mean(y_test), linestyle='--', color='r')
+    
     plt.xlabel('Recall')
     plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
     plt.title(title)
-    plt.legend(loc="lower left")
-    plt.tight_layout()
-    logger.info(f"Generated precision-recall curve plot with AUC: {pr_auc:.3f}")
-    return plt.gcf(), pr_auc
-
-def plot_learning_curve(train_sizes, train_scores, test_scores, title="Learning Curve"):
-    """
-    Plot learning curve to evaluate model performance with varying training set sizes.
-    
-    Args:
-        train_sizes (array): Training set sizes
-        train_scores (array): Training scores
-        test_scores (array): Test scores
-        title (str): Plot title
-    """
-    plt.figure(figsize=(10, 6))
-    
-    train_mean = np.mean(train_scores, axis=1)
-    train_std = np.std(train_scores, axis=1)
-    test_mean = np.mean(test_scores, axis=1)
-    test_std = np.std(test_scores, axis=1)
-    
-    plt.plot(train_sizes, train_mean, 'o-', color='blue', label='Training score')
-    plt.plot(train_sizes, test_mean, 'o-', color='red', label='Cross-validation score')
-    
-    plt.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, alpha=0.1, color='blue')
-    plt.fill_between(train_sizes, test_mean - test_std, test_mean + test_std, alpha=0.1, color='red')
-    
-    plt.title(title)
-    plt.xlabel('Training Examples')
-    plt.ylabel('Score')
+    plt.legend(loc="best")
     plt.grid(True)
-    plt.legend(loc='best')
-    plt.tight_layout()
-    logger.info("Generated learning curve plot")
+    
     return plt.gcf()
 
-def plot_time_series(df, time_col='Time', value_col='Amount', class_col='Class', title="Transaction Time Series"):
+
+def plot_feature_importance(feature_importance, top_n=20, title='Özellik Önem Sıralaması', figsize=(12, 10)):
     """
-    Plot time series data with fraud transactions highlighted.
+    Özellik önem sıralamasını görselleştirir.
     
     Args:
-        df (pd.DataFrame): DataFrame containing time series data
-        time_col (str): Column name for time
-        value_col (str): Column name for value to plot
-        class_col (str): Column name for class (fraud/non-fraud)
-        title (str): Plot title
+        feature_importance (pd.DataFrame): 'feature' ve 'importance' sütunlarını içeren DataFrame
+        top_n (int): Gösterilecek özellik sayısı
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
     """
-    plt.figure(figsize=(15, 8))
+    plt.figure(figsize=figsize)
     
-    # Plot all transactions
-    plt.scatter(df[time_col], df[value_col], alpha=0.5, s=10, label='Non-Fraud', color='blue')
+    # En önemli N özelliği seç
+    top_features = feature_importance.head(top_n)
     
-    # Highlight fraud transactions
-    fraud_df = df[df[class_col] == 1]
-    plt.scatter(fraud_df[time_col], fraud_df[value_col], alpha=0.7, s=30, label='Fraud', color='red')
+    # Özellik önemini görselleştirelim
+    ax = sns.barplot(x='importance', y='feature', data=top_features)
+    
+    # Değerleri çubukların yanına ekleyelim
+    for i, v in enumerate(top_features['importance']):
+        ax.text(v + 0.001, i, f"{v:.4f}", va='center')
+    
+    plt.title(f'{title} (Top {top_n})')
+    plt.tight_layout()
+    
+    return plt.gcf()
+
+
+def plot_threshold_optimization(y_test, y_proba, title='Eşik Değeri Optimizasyonu', figsize=(10, 6)):
+    """
+    Farklı eşik değerleri için metrik değişimini görselleştirir.
+    
+    Args:
+        y_test (array): Gerçek etiketler
+        y_proba (array): Pozitif sınıf olasılıkları
+        title (str): Grafik başlığı
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        tuple: (Figure, optimal_threshold, optimal_f1)
+    """
+    from sklearn.metrics import precision_score, recall_score, f1_score
+    
+    thresholds = np.arange(0, 1, 0.01)
+    precision_scores = []
+    recall_scores = []
+    f1_scores = []
+    
+    for threshold in thresholds:
+        # Verilen eşik değerine göre tahminleri oluştur
+        y_pred = (y_proba >= threshold).astype(int)
+        
+        # Metrikleri hesapla
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
+        
+        precision_scores.append(precision)
+        recall_scores.append(recall)
+        f1_scores.append(f1)
+    
+    # En yüksek F1 skoruna sahip eşik değerini bulalım
+    optimal_threshold_idx = np.argmax(f1_scores)
+    optimal_threshold = thresholds[optimal_threshold_idx]
+    
+    # Sonuçları görselleştirelim
+    plt.figure(figsize=figsize)
+    plt.plot(thresholds, precision_scores, label='Precision')
+    plt.plot(thresholds, recall_scores, label='Recall')
+    plt.plot(thresholds, f1_scores, label='F1 Score')
+    plt.axvline(x=0.5, color='r', linestyle='--', label='Default Threshold (0.5)')
+    plt.axvline(x=optimal_threshold, color='g', linestyle='--', 
+                label=f'Optimal Threshold ({optimal_threshold:.2f})')
     
     plt.title(title)
-    plt.xlabel('Time')
-    plt.ylabel(value_col)
+    plt.xlabel('Eşik Değeri')
+    plt.ylabel('Skor')
     plt.legend()
-    plt.tight_layout()
+    plt.grid(True)
     
-    logger.info(f"Generated time series plot with {len(fraud_df)} fraud transactions highlighted")
-    return plt.gcf()
+    return plt.gcf(), optimal_threshold, f1_scores[optimal_threshold_idx]
 
-def save_figure(fig, filename, dpi=300):
+
+def create_model_comparison_table(models_dict, X_test, y_test):
     """
-    Save figure to file.
+    Modellerin performans metriklerini karşılaştıran bir tablo oluşturur.
     
     Args:
-        fig (matplotlib.figure.Figure): Figure to save
-        filename (str): Output filename
-        dpi (int): DPI for saved figure
+        models_dict (dict): {model_adı: model_nesnesi} şeklinde sözlük
+        X_test (array): Test verileri
+        y_test (array): Test etiketleri
+        
+    Returns:
+        pd.DataFrame: Performans metriklerini içeren DataFrame
     """
-    fig.savefig(filename, dpi=dpi, bbox_inches='tight')
-    logger.info(f"Saved figure to {filename}")
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+    
+    results = []
+    
+    for model_name, model in models_dict.items():
+        # Model tipine göre tahmin fonksiyonunu ayarlayalım
+        if hasattr(model, 'predict_proba'):
+            y_proba = model.predict_proba(X_test)[:, 1]
+            y_pred = (y_proba >= 0.5).astype(int)
+        else:
+            y_pred = model.predict(X_test)
+            y_proba = y_pred  # Olasılık değerleri yoksa, direkt tahminleri kullan
+            
+        # Metrikleri hesapla
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
+        auc_score = roc_auc_score(y_test, y_proba)
+        
+        results.append({
+            'Model': model_name,
+            'Accuracy': accuracy,
+            'Precision': precision,
+            'Recall': recall,
+            'F1 Score': f1,
+            'AUC': auc_score
+        })
+    
+    return pd.DataFrame(results)
