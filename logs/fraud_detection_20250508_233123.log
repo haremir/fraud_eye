@@ -1,0 +1,46 @@
+2025-05-08 23:31:24,536 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-08 23:31:24,542 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-08 23:31:24,546 | INFO | 2841981692.py:7 | Veriler baþarýyla yüklendi ve ön iþlendi
+2025-05-08 23:31:24,553 | INFO | 317311089.py:1 | XGBoost model eðitimi baþlýyor...
+2025-05-08 23:31:24,554 | INFO | base_model.py:29 | Initialized xgboost model
+2025-05-08 23:31:24,555 | INFO | xgboost.py:31 | Training XGBoost model with 68235 samples
+2025-05-08 23:31:49,971 | INFO | xgboost.py:60 | XGBoost model training completed
+2025-05-08 23:31:49,973 | INFO | xgboost.py:68 | Making predictions on 56962 samples
+2025-05-08 23:31:50,188 | INFO | 317311089.py:8 | XGBoost eðitimi tamamlandý
+2025-05-08 23:31:50,195 | INFO | 1604418239.py:1 | Logistic Regression model eðitimi baþlýyor...
+2025-05-08 23:31:50,196 | INFO | base_model.py:29 | Initialized logistic_regression model
+2025-05-08 23:31:50,196 | INFO | logistic_regression.py:36 | Training Logistic Regression model with 68235 samples
+2025-05-08 23:31:50,888 | INFO | logistic_regression.py:39 | Logistic Regression model training completed
+2025-05-08 23:31:50,889 | INFO | logistic_regression.py:55 | Making probability predictions on 56962 samples
+2025-05-08 23:31:50,903 | INFO | 1604418239.py:8 | Logistic Regression eðitimi tamamlandý
+2025-05-08 23:31:50,927 | INFO | 4249473250.py:8 | xgboost_model kaydedildi: c:\Users\PC\Desktop\fraud_eye\notebooks\..\models\xgboost_model.pkl
+2025-05-08 23:31:50,930 | INFO | 4249473250.py:8 | logistic_regression_model kaydedildi: c:\Users\PC\Desktop\fraud_eye\notebooks\..\models\logistic_regression_model.pkl
+2025-05-08 23:31:50,942 | INFO | 4249473250.py:16 | Test verileri baþarýyla kaydedildi
+2025-05-08 23:35:52,719 | INFO | 3929900428.py:16 | Modeller ve veriler baþarýyla kaydedildi
+2025-05-08 23:36:10,782 | INFO | 3929900428.py:16 | Modeller ve veriler baþarýyla kaydedildi
+2025-05-09 00:30:15,894 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-09 00:30:15,904 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-09 00:30:15,913 | INFO | 2841981692.py:7 | Veriler baþarýyla yüklendi ve ön iþlendi
+2025-05-09 00:30:15,913 | INFO | 2841981692.py:7 | Veriler baþarýyla yüklendi ve ön iþlendi
+2025-05-09 00:30:15,922 | INFO | 317311089.py:1 | XGBoost model eðitimi baþlýyor...
+2025-05-09 00:30:15,922 | INFO | 317311089.py:1 | XGBoost model eðitimi baþlýyor...
+2025-05-09 00:30:15,924 | INFO | base_model.py:29 | Initialized xgboost model
+2025-05-09 00:30:15,925 | INFO | xgboost.py:31 | Training XGBoost model with 68235 samples
+2025-05-09 00:30:41,431 | INFO | xgboost.py:60 | XGBoost model training completed
+2025-05-09 00:30:41,435 | INFO | xgboost.py:68 | Making predictions on 56962 samples
+2025-05-09 00:30:41,653 | INFO | 317311089.py:8 | XGBoost eðitimi tamamlandý
+2025-05-09 00:30:41,653 | INFO | 317311089.py:8 | XGBoost eðitimi tamamlandý
+2025-05-09 00:30:41,662 | INFO | 1604418239.py:1 | Logistic Regression model eðitimi baþlýyor...
+2025-05-09 00:30:41,662 | INFO | 1604418239.py:1 | Logistic Regression model eðitimi baþlýyor...
+2025-05-09 00:30:41,664 | INFO | base_model.py:29 | Initialized logistic_regression model
+2025-05-09 00:30:41,665 | INFO | logistic_regression.py:36 | Training Logistic Regression model with 68235 samples
+2025-05-09 00:30:42,374 | INFO | logistic_regression.py:39 | Logistic Regression model training completed
+2025-05-09 00:30:42,375 | INFO | logistic_regression.py:55 | Making probability predictions on 56962 samples
+2025-05-09 00:30:42,389 | INFO | 1604418239.py:8 | Logistic Regression eðitimi tamamlandý
+2025-05-09 00:30:42,389 | INFO | 1604418239.py:8 | Logistic Regression eðitimi tamamlandý
+2025-05-09 00:30:42,415 | INFO | 4249473250.py:8 | xgboost_model kaydedildi: c:\Users\PC\Desktop\fraud_eye\notebooks\..\models\xgboost_model.pkl
+2025-05-09 00:30:42,415 | INFO | 4249473250.py:8 | xgboost_model kaydedildi: c:\Users\PC\Desktop\fraud_eye\notebooks\..\models\xgboost_model.pkl
+2025-05-09 00:30:42,418 | INFO | 4249473250.py:8 | logistic_regression_model kaydedildi: c:\Users\PC\Desktop\fraud_eye\notebooks\..\models\logistic_regression_model.pkl
+2025-05-09 00:30:42,418 | INFO | 4249473250.py:8 | logistic_regression_model kaydedildi: c:\Users\PC\Desktop\fraud_eye\notebooks\..\models\logistic_regression_model.pkl
+2025-05-09 00:30:42,431 | INFO | 4249473250.py:16 | Test verileri baþarýyla kaydedildi
+2025-05-09 00:30:42,431 | INFO | 4249473250.py:16 | Test verileri baþarýyla kaydedildi
