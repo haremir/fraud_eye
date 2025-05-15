@@ -466,6 +466,189 @@ def create_model_comparison_table(models_dict, X_test, y_test):
     
     return pd.DataFrame(results)
 
+def plot_metrics_with_confusion_matrix(y_true, y_pred, y_proba=None, class_names=['Normal', 'Fraud'], 
+                               title='Model Performans Dashboard', figsize=(18, 10)):
+    """
+    Başarı metriklerini ve confusion matrisini tek bir görselde birleştirerek gösterir.
+    
+    Args:
+        y_true (array): Gerçek etiketler
+        y_pred (array): Tahmin edilen etiketler
+        y_proba (array, optional): Pozitif sınıf olasılıkları (ROC AUC hesaplamak için)
+        class_names (list): Sınıf isimleri
+        title (str): Ana başlık
+        figsize (tuple): Grafik boyutu
+        
+    Returns:
+        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
+    """
+    from sklearn.metrics import (
+        accuracy_score, precision_score, recall_score, f1_score,
+        confusion_matrix, roc_auc_score
+    )
+    
+    # Metrikleri hesapla
+    metrics = {
+        'Accuracy': accuracy_score(y_true, y_pred),
+        'Precision': precision_score(y_true, y_pred),
+        'Recall': recall_score(y_true, y_pred),
+        'F1 Score': f1_score(y_true, y_pred)
+    }
+    
+    if y_proba is not None:
+        metrics['ROC AUC'] = roc_auc_score(y_true, y_proba)
+        
+    # Confusion matrix hesapla
+    cm = confusion_matrix(y_true, y_pred)
+    
+    # Figure oluştur
+    fig = plt.figure(figsize=figsize)
+    fig.suptitle(title, fontsize=16, y=0.98)
+    
+    # Sol tarafta confusion matrix
+    ax1 = plt.subplot(1, 2, 1)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+               xticklabels=class_names,
+               yticklabels=class_names, ax=ax1)
+    ax1.set_title('Confusion Matrix')
+    ax1.set_ylabel('Gerçek Sınıf')
+    ax1.set_xlabel('Tahmin Edilen Sınıf')
+    
+    # Sağ tarafta performans metrikleri
+    ax2 = plt.subplot(1, 2, 2)
+    metrics_df = pd.DataFrame(list(metrics.items()), columns=['Metrik', 'Değer'])
+    
+    # Çubuk grafik
+    colors = sns.color_palette("Blues_r", len(metrics))
+    bars = ax2.barh(metrics_df['Metrik'], metrics_df['Değer'], color=colors)
+    
+    # Çubuk değerlerini ekle
+    for i, (bar, value) in enumerate(zip(bars, metrics_df['Değer'])):
+        ax2.text(value + 0.01, i, f'{value:.4f}', va='center')
+    
+    ax2.set_title('Performans Metrikleri')
+    ax2.set_xlim(0, 1.1)
+    ax2.grid(axis='x', linestyle='--', alpha=0.7)
+    
+    # Destek değerlerini ekstra bilgi olarak göster
+    class_support = pd.Series(np.bincount(y_true)).values
+    if len(class_support) == 2:  # İkili sınıflandırma ise
+        support_text = f"""
+        Support:
+        - {class_names[0]}: {class_support[0]}
+        - {class_names[1]}: {class_support[1]}
+        - Total: {len(y_true)}
+        """
+        ax2.text(0.5, -0.3, support_text, transform=ax2.transAxes)
+    
+    # Sınıf dağılımını pasta grafiğinde göster (küçük ek grafik)
+    ax3 = plt.axes([0.68, 0.15, 0.2, 0.2])  # Sağ altta küçük bir grafik
+    ax3.pie(class_support, labels=class_names, autopct='%1.1f%%', 
+            colors=['lightblue', 'salmon'], startangle=90)
+    ax3.set_title('Sınıf Dağılımı', fontsize=10)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.9)
+    
+    return fig
+
+def plot_models_comparison_dashboard(y_test, models_dict, figsize=(20, 12)):
+    """İki modeli karşılaştıran bir dashboard görselleştirmesi"""
+    from sklearn.metrics import (
+        accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+    )
+    
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    fig.suptitle('Model Karşılaştırma Dashboard', fontsize=18, y=0.98)
+    
+    # Metrik listesi ve renkler
+    metrics_list = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'ROC AUC']
+    colors = {
+        'XGBoost': 'royalblue',
+        'Logistic Regression': 'lightcoral'
+    }
+    
+    # Her model için metrikleri hesapla
+    models_metrics = {}
+    
+    for model_name, (y_pred, y_prob) in models_dict.items():
+        models_metrics[model_name] = {
+            'Accuracy': accuracy_score(y_test, y_pred),
+            'Precision': precision_score(y_test, y_pred),
+            'Recall': recall_score(y_test, y_pred),
+            'F1 Score': f1_score(y_test, y_pred),
+            'ROC AUC': roc_auc_score(y_test, y_prob)
+        }
+    
+    # 1. Metrik çubuk grafiği
+    ax1 = axes[0, 0]
+    
+    # Her metrik için modelleri karşılaştır
+    x = np.arange(len(metrics_list))
+    width = 0.35
+    
+    for i, (model_name, metrics) in enumerate(models_metrics.items()):
+        values = [metrics[m] for m in metrics_list]
+        pos = x - width/2 if i == 0 else x + width/2
+        bars = ax1.bar(pos, values, width, label=model_name, color=colors[model_name])
+        
+        # Çubuk değerlerini ekle
+        for bar, value in zip(bars, values):
+            height = bar.get_height()
+            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                    f'{value:.3f}', ha='center', va='bottom', fontsize=9)
+    
+    ax1.set_ylim(0, 1.2)
+    ax1.set_title('Model Metrikleri Karşılaştırması')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(metrics_list, rotation=30)
+    ax1.legend()
+    ax1.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    # 2. Confusion matrices
+    ax2 = axes[0, 1]
+    ax3 = axes[1, 0]
+    
+    conf_matrices = {}
+    for model_name, (y_pred, _) in models_dict.items():
+        conf_matrices[model_name] = confusion_matrix(y_test, y_pred)
+    
+    # XGBoost confusion matrix
+    sns.heatmap(conf_matrices['XGBoost'], annot=True, fmt='d', cmap='Blues',
+               xticklabels=['Normal', 'Fraud'],
+               yticklabels=['Normal', 'Fraud'], ax=ax2)
+    ax2.set_title('XGBoost Confusion Matrix')
+    
+    # Logistic Regression confusion matrix
+    sns.heatmap(conf_matrices['Logistic Regression'], annot=True, fmt='d', cmap='OrRd',
+               xticklabels=['Normal', 'Fraud'],
+               yticklabels=['Normal', 'Fraud'], ax=ax3)
+    ax3.set_title('Logistic Regression Confusion Matrix')
+    
+    # 4. ROC eğrileri
+    ax4 = axes[1, 1]
+    
+    for model_name, (_, y_prob) in models_dict.items():
+        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        roc_auc = roc_auc_score(y_test, y_prob)
+        ax4.plot(fpr, tpr, lw=2, label=f'{model_name} (AUC = {roc_auc:.4f})',
+                color=colors[model_name])
+    
+    # Tesadüfi tahmin için çizgi
+    ax4.plot([0, 1], [0, 1], 'k--', lw=2)
+    ax4.set_xlim([0.0, 1.0])
+    ax4.set_ylim([0.0, 1.05])
+    ax4.set_xlabel('False Positive Rate')
+    ax4.set_ylabel('True Positive Rate')
+    ax4.set_title('ROC Eğrileri Karşılaştırması')
+    ax4.legend(loc="lower right")
+    ax4.grid(True)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.92)
+    
+    return fig
+
 def save_figure(fig, filename, version='V1', reports_dir=None, show=True):
     """
     Görseli kaydeder ve istenirse ekranda gösterir.
