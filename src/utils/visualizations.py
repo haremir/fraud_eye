@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 from sklearn.metrics import (
     confusion_matrix, roc_curve, auc, precision_recall_curve,
     average_precision_score, roc_auc_score
@@ -464,3 +465,34 @@ def create_model_comparison_table(models_dict, X_test, y_test):
         })
     
     return pd.DataFrame(results)
+
+def save_figure(fig, filename, version='V1', reports_dir=None, show=True):
+    """
+    Görseli kaydeder ve istenirse ekranda gösterir.
+
+    Args:
+        fig (matplotlib.figure.Figure): Kaydedilecek figür
+        filename (str): Dosya adı
+        version (str): Versiyon etiketi (V1, V2, ...) - klasör adı olarak kullanılır
+        reports_dir (str, optional): Rapor dizini. None ise '../reports' varsayılan değeri kullanılır.
+        show (bool): Görsel ekranda gösterilsin mi?
+    """
+    # Varsayılan reports dizini
+    if reports_dir is None:
+        reports_dir = '../reports'
+
+    # Versiyon klasörü yolu
+    fig_path = os.path.join(reports_dir, 'figures', version, filename)
+
+    # Klasörü oluştur (yoksa)
+    os.makedirs(os.path.dirname(fig_path), exist_ok=True)
+
+    # Kaydet
+    fig.savefig(fig_path, bbox_inches='tight', dpi=300)
+    print(f"✔ Görsel kaydedildi: {fig_path}")
+
+    # Göster (istenirse)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
