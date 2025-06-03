@@ -1,3 +1,6 @@
+"""
+XGBoost model sınıfını içeren modül.
+"""
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -11,55 +14,50 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from src.utils.logger import setup_logger
-from src.base_model import BaseModel
-import src.config as config
+from src.models.base_model import BaseModel
+from src.config import XGBOOST_PARAMS
 import src.constants as constants
 
 logger = setup_logger(__name__)
 
 class XGBoostModel(BaseModel):
-    """XGBoost implementation for fraud detection."""
-    
-    def __init__(self, params=None):
-        """Initialize XGBoost model with parameters."""
-        super().__init__(model_name="xgboost")
-        self.params = params or config.XGBOOST_PARAMS
-        self.model = None
+    """
+    XGBoost model sınıfı.
+    """
+    def __init__(self):
+        """
+        XGBoost model sınıfını başlatır.
+        """
+        super().__init__("xgboost")
+        self.logger.info("Initialized xgboost model")
+
+    def train(self, X_train, y_train, params=None, **kwargs):
+        """
+        XGBoost modelini eğitir.
         
-    def train(self, X_train, y_train, X_val=None, y_val=None):
-        """Train XGBoost model."""
-        logger.info(f"Training XGBoost model with {X_train.shape[0]} samples")
-        
-        # Create DMatrix for XGBoost
-        dtrain = xgb.DMatrix(X_train, label=y_train)
-        
-        # If validation set provided, use early stopping
-        if X_val is not None and y_val is not None:
-            dval = xgb.DMatrix(X_val, label=y_val)
-            evallist = [(dtrain, 'train'), (dval, 'validation')]
+        Args:
+            X_train: Eğitim özellikleri
+            y_train: Eğitim hedefleri
+            params: Model parametreleri
+            **kwargs: Ek parametreler
             
-            self.model = xgb.train(
-                params=self.params,
-                dtrain=dtrain,
-                num_boost_round=self.params.get('num_boost_round', 1000),
-                evals=evallist,
-                early_stopping_rounds=self.params.get('early_stopping_rounds', 50),
-                verbose_eval=self.params.get('verbose_eval', 100)
-            )
-            
-            logger.info(f"Best iteration: {self.model.best_iteration}")
-        else:
-            # Train without early stopping
-            self.model = xgb.train(
-                params=self.params,
-                dtrain=dtrain,
-                num_boost_round=self.params.get('num_boost_round', 1000),
-                verbose_eval=self.params.get('verbose_eval', 100)
-            )
+        Returns:
+            xgb.XGBClassifier: Eğitilmiş model
+        """
+        self.logger.info(f"Training XGBoost model with {len(X_train)} samples")
         
-        logger.info("XGBoost model training completed")
-        return self
-    
+        # Parametreleri birleştir
+        model_params = XGBOOST_PARAMS.copy()
+        if params:
+            model_params.update(params)
+        
+        # Modeli oluştur ve eğit
+        self.model = xgb.XGBClassifier(**model_params)
+        self.model.fit(X_train, y_train)
+        
+        self.logger.info("XGBoost model training completed")
+        return self.model
+
     def predict(self, X):
         """Make predictions with trained model."""
         if self.model is None:
@@ -76,8 +74,8 @@ class XGBoostModel(BaseModel):
         
         logger.info(f"Making probability predictions on {X.shape[0]} samples")
         dtest = xgb.DMatrix(X)
-        probas = self.model.predict(dtest)
-        return np.vstack((1 - probas, probas)).T
+        probas = self.model.predict_proba(dtest)
+        return probas
     
     def evaluate(self, X_test, y_test, threshold=0.5):
         """Evaluate model performance."""
@@ -87,7 +85,7 @@ class XGBoostModel(BaseModel):
         logger.info(f"Evaluating model on {X_test.shape[0]} samples")
         
         dtest = xgb.DMatrix(X_test)
-        y_pred_proba = self.model.predict(dtest)
+        y_pred_proba = self.model.predict_proba(dtest)[:, 1]
         y_pred = (y_pred_proba >= threshold).astype(int)
         
         conf_matrix = confusion_matrix(y_test, y_pred)
@@ -166,7 +164,7 @@ class XGBoostModel(BaseModel):
         
         try:
             # Get importance scores as dictionary
-            importance_dict = self.model.get_score(importance_type=importance_type, fmap='')
+            importance_dict = self.model.get_booster().get_score(importance_type=importance_type, fmap='')
             
             # Convert to DataFrame
             importance_df = pd.DataFrame({
@@ -208,11 +206,21 @@ class XGBoostModel(BaseModel):
         plt.show()
 
 
-def train_xgboost(X_train, y_train, X_val=None, y_val=None, params=None):
-    """Train XGBoost model with given parameters."""
-    model = XGBoostModel(params=params)
-    model.train(X_train, y_train, X_val, y_val)
-    return model
+def train_xgboost(X_train, y_train, params=None, preprocessing_config=None):
+    """
+    XGBoost modelini eğitir ve döndürür.
+    
+    Args:
+        X_train: Eğitim özellikleri
+        y_train: Eğitim hedefleri
+        params: Model parametreleri
+        preprocessing_config: Ön işleme konfigürasyonu
+        
+    Returns:
+        xgb.XGBClassifier: Eğitilmiş model
+    """
+    model = XGBoostModel()
+    return model.train(X_train, y_train, params=params)
 
 
 def evaluate_xgboost(model, X_test, y_test, threshold=0.5):

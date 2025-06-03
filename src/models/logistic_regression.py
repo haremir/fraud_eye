@@ -1,5 +1,5 @@
 """
-Logistic Regression model implementation for fraud detection.
+Logistic Regression model sınıfını içeren modül.
 """
 
 import pandas as pd
@@ -16,28 +16,49 @@ from sklearn.metrics import (
 )
 
 from src.utils.logger import setup_logger
-from src.base_model import BaseModel
-import src.config as config
+from src.models.base_model import BaseModel
+from src.config import LOGISTIC_REGRESSION_PARAMS
 import src.constants as constants
 
 logger = setup_logger(__name__)
 
 class LogisticRegressionModel(BaseModel):
-    """Logistic Regression implementation for fraud detection."""
-    
-    def __init__(self, params=None):
-        """Initialize Logistic Regression model with parameters."""
-        super().__init__(model_name="logistic_regression")
-        self.params = params or config.LOGISTIC_REGRESSION_CONFIG
-        self.model = None
+    """
+    Logistic Regression model sınıfı.
+    """
+    def __init__(self):
+        """
+        Logistic Regression model sınıfını başlatır.
+        """
+        super().__init__("logistic_regression")
+        self.logger.info("Initialized logistic_regression model")
+
+    def train(self, X_train, y_train, params=None, **kwargs):
+        """
+        Logistic Regression modelini eğitir.
         
-    def train(self, X_train, y_train):
-        """Train Logistic Regression model."""
-        logger.info(f"Training Logistic Regression model with {X_train.shape[0]} samples")
-        self.model = LogisticRegression(**self.params)
+        Args:
+            X_train: Eğitim özellikleri
+            y_train: Eğitim hedefleri
+            params: Model parametreleri
+            **kwargs: Ek parametreler
+            
+        Returns:
+            LogisticRegression: Eğitilmiş model
+        """
+        self.logger.info(f"Training Logistic Regression model with {len(X_train)} samples")
+        
+        # Parametreleri birleştir
+        model_params = LOGISTIC_REGRESSION_PARAMS.copy()
+        if params:
+            model_params.update(params)
+        
+        # Modeli oluştur ve eğit
+        self.model = LogisticRegression(**model_params)
         self.model.fit(X_train, y_train)
-        logger.info("Logistic Regression model training completed")
-        return self
+        
+        self.logger.info("Logistic Regression model training completed")
+        return self.model
     
     def predict(self, X):
         """Make predictions with trained model."""
@@ -182,11 +203,21 @@ class LogisticRegressionModel(BaseModel):
         return importance_df
 
 
-def train_logistic_regression(X_train, y_train, params=None):
-    """Train Logistic Regression model with given parameters."""
-    model = LogisticRegressionModel(params=params)
-    model.train(X_train, y_train)
-    return model
+def train_logistic_regression(X_train, y_train, params=None, preprocessing_config=None):
+    """
+    Logistic Regression modelini eğitir ve döndürür.
+    
+    Args:
+        X_train: Eğitim özellikleri
+        y_train: Eğitim hedefleri
+        params: Model parametreleri
+        preprocessing_config: Ön işleme konfigürasyonu
+        
+    Returns:
+        LogisticRegression: Eğitilmiş model
+    """
+    model = LogisticRegressionModel()
+    return model.train(X_train, y_train, params=params)
 
 
 def evaluate_logistic_regression(model, X_test, y_test, threshold=0.5):

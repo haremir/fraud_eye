@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE, ADASYN, RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler, NearMiss, TomekLinks
+from imblearn.combine import SMOTETomek, SMOTEENN
 from src.utils.logger import setup_logger
 from src.constants import CATEGORICAL_FEATURES, NUMERICAL_FEATURES, TARGET
 
@@ -44,6 +47,91 @@ def handle_missing_values(df, strategy="median"):
         logger.info("No missing values found in the dataset")
     
     return df_copy
+
+def handle_class_imbalance(X, y, method="smote", sampling_strategy=None, random_state=42):
+    """Handle class imbalance in the dataset
+    
+    Args:
+        X (pd.DataFrame): Features dataframe
+        y (pd.Series): Target series
+        method (str, optional): Method to handle imbalance. Defaults to "smote".
+            Options: 
+                - "smote": Synthetic Minority Over-sampling Technique
+                - "adasyn": Adaptive Synthetic Sampling
+                - "random_over": Random Over-sampling
+                - "random_under": Random Under-sampling
+                - "nearmiss": NearMiss Under-sampling
+                - "tomek": Tomek Links Under-sampling
+                - "smote_tomek": SMOTE + Tomek Links
+                - "smote_enn": SMOTE + Edited Nearest Neighbors
+                - "none": No resampling
+        sampling_strategy (float, str, dict, optional): Sampling strategy. 
+            When float: ratio of minority to majority class.
+            When "auto": Automatically determined.
+            When dict: Specific ratio for each class.
+            Defaults to None (automatically determined based on method).
+        random_state (int, optional): Random seed. Defaults to 42.
+        
+    Returns:
+        tuple: Resampled X and y (pd.DataFrame, pd.Series)
+    """
+    logger.info(f"Handling class imbalance using method: {method}")
+    
+    # Check class distribution before
+    class_dist_before = y.value_counts()
+    logger.info(f"Class distribution before: {class_dist_before.to_dict()}")
+    
+    if method == "none":
+        logger.info("No resampling requested, returning original data")
+        return X, y
+    
+    # Set default sampling strategy if none provided
+    if sampling_strategy is None:
+        if method in ["random_under", "nearmiss", "tomek"]:
+            # Default for undersampling: keep all minority samples
+            sampling_strategy = "auto"
+        else:
+            # Default for oversampling: bring minority class to 50% of majority
+            # For fraud detection, we don't want to create too many synthetic samples
+            sampling_strategy = 0.5
+    
+    # Initialize resampler based on method
+    if method == "smote":
+        resampler = SMOTE(sampling_strategy=sampling_strategy, random_state=random_state)
+    elif method == "adasyn":
+        resampler = ADASYN(sampling_strategy=sampling_strategy, random_state=random_state)
+    elif method == "random_over":
+        resampler = RandomOverSampler(sampling_strategy=sampling_strategy, random_state=random_state)
+    elif method == "random_under":
+        resampler = RandomUnderSampler(sampling_strategy=sampling_strategy, random_state=random_state)
+    elif method == "nearmiss":
+        resampler = NearMiss(sampling_strategy=sampling_strategy, version=2)
+    elif method == "tomek":
+        resampler = TomekLinks(sampling_strategy=sampling_strategy)
+    elif method == "smote_tomek":
+        resampler = SMOTETomek(sampling_strategy=sampling_strategy, random_state=random_state)
+    elif method == "smote_enn":
+        resampler = SMOTEENN(sampling_strategy=sampling_strategy, random_state=random_state)
+    else:
+        logger.warning(f"Unknown imbalance handling method: {method}. No resampling applied.")
+        return X, y
+    
+    # Apply resampling
+    logger.info(f"Applying {method} resampling...")
+    X_resampled, y_resampled = resampler.fit_resample(X, y)
+    
+    # Convert back to pandas objects to maintain consistency
+    if not isinstance(X_resampled, pd.DataFrame):
+        X_resampled = pd.DataFrame(X_resampled, columns=X.columns)
+    if not isinstance(y_resampled, pd.Series):
+        y_resampled = pd.Series(y_resampled, name=y.name)
+    
+    # Check class distribution after
+    class_dist_after = y_resampled.value_counts()
+    logger.info(f"Class distribution after: {class_dist_after.to_dict()}")
+    logger.info(f"Resampled data shape: {X_resampled.shape}, {y_resampled.shape}")
+    
+    return X_resampled, y_resampled
 
 def scale_features(df, scaler_type="standard", features=None):
     """Scale numerical features
@@ -238,10 +326,45 @@ def create_interaction_features(df, features=None, degree=2):
     if degree == 2:
         for i, feat1 in enumerate(features):
             for feat2 in features[i+1:]:
-                interaction_name = f"{feat1}_x_{feat2}"
+                interaction_name = f"{feat1}x{feat2}"
                 df_copy[interaction_name] = df_copy[feat1] * df_copy[feat2]
     else:
         logger.warning(f"Degree {degree} not implemented yet")
     
     logger.info("Created interaction features")
     return df_copy
+
+def create_cost_sensitive_weights(y, pos_weight=None):
+    """Create sample weights for cost-sensitive learning
+    
+    Args:
+        y (pd.Series): Target series
+        pos_weight (float, optional): Weight for positive class. If None, automatically determined.
+            Defaults to None.
+    
+    Returns:
+        np.ndarray: Array of sample weights
+    """
+    logger.info("Creating cost-sensitive weights")
+    
+    # Count classes
+    class_counts = y.value_counts()
+    n_neg = class_counts.get(0, 0)
+    n_pos = class_counts.get(1, 0)
+    
+    if n_pos == 0 or n_neg == 0:
+        logger.warning("One class has zero samples, returning equal weights")
+        return np.ones(len(y))
+    
+    # Calculate class weight if not provided
+    if pos_weight is None:
+        # Classic balanced class weight formula
+        pos_weight = n_neg / n_pos
+    
+    logger.info(f"Positive class weight: {pos_weight}")
+    
+    # Create sample weights
+    sample_weights = np.ones(len(y))
+    sample_weights[y == 1] = pos_weight
+    
+    return sample_weights

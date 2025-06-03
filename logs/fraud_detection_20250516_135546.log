@@ -1,0 +1,22 @@
+2025-05-16 13:55:47,630 | INFO | pipeline.py:31 | Initialized FraudPreprocessor
+2025-05-16 13:55:47,809 | INFO | pipeline.py:43 | Preprocessing data (training mode)
+2025-05-16 13:55:47,817 | INFO | feature_engineering.py:26 | Handling missing values with strategy: median
+2025-05-16 13:55:47,831 | INFO | feature_engineering.py:47 | No missing values found in the dataset
+2025-05-16 13:55:47,833 | INFO | feature_engineering.py:188 | Creating time-based features
+2025-05-16 13:55:47,871 | INFO | feature_engineering.py:210 | Created time-based features: hour_of_day, day_of_week, is_weekend
+2025-05-16 13:55:47,873 | INFO | feature_engineering.py:223 | Creating amount-based features
+2025-05-16 13:55:47,953 | INFO | feature_engineering.py:247 | Created amount-based features
+2025-05-16 13:55:47,956 | INFO | feature_engineering.py:147 | Scaling features using standard scaler
+2025-05-16 13:55:48,063 | INFO | feature_engineering.py:175 | Scaled 30 features
+2025-05-16 13:55:48,066 | INFO | pipeline.py:97 | Preprocessing complete. Output shape: (227845, 41)
+2025-05-16 13:55:48,066 | INFO | pipeline.py:43 | Preprocessing data (inference mode)
+2025-05-16 13:55:48,069 | INFO | feature_engineering.py:26 | Handling missing values with strategy: median
+2025-05-16 13:55:48,072 | INFO | feature_engineering.py:47 | No missing values found in the dataset
+2025-05-16 13:55:48,073 | INFO | feature_engineering.py:188 | Creating time-based features
+2025-05-16 13:55:48,086 | INFO | feature_engineering.py:210 | Created time-based features: hour_of_day, day_of_week, is_weekend
+2025-05-16 13:55:48,087 | INFO | feature_engineering.py:223 | Creating amount-based features
+2025-05-16 13:55:48,109 | INFO | feature_engineering.py:247 | Created amount-based features
+2025-05-16 13:55:48,128 | INFO | pipeline.py:97 | Preprocessing complete. Output shape: (56962, 41)
+2025-05-16 13:55:48,538 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-16 13:55:48,558 | INFO | pipeline.py:110 | Splitting features and target
+2025-05-16 13:55:59,352 | INFO | pipeline.py:132 | Preprocessor saved to ..\models\preprocessing_pipeline.pkl

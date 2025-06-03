@@ -10,6 +10,7 @@ from sklearn.metrics import (
 import io
 import re
 from typing import List, Dict, Union, Tuple, Optional
+from src.config import VISUALIZATION_CONFIG
 
 
 def classification_report_to_dataframe(report: str) -> pd.DataFrame:
@@ -87,97 +88,57 @@ def classification_report_to_dataframe(report: str) -> pd.DataFrame:
     return pd.DataFrame(report_data)
 
 
-def plot_confusion_matrix(y_true, y_pred, class_names=['Normal', 'Fraud'], title='Confusion Matrix', 
-                        figsize=(8, 6), normalize=False):
+def plot_confusion_matrix(y_true, y_pred, model_name, title='Confusion Matrix'):
     """
     Karmaşıklık matrisini görselleştirir.
-    
-    Args:
-        y_true (array): Gerçek etiketler
-        y_pred (array): Tahmin edilen etiketler
-        class_names (list): Sınıf isimleri
-        title (str): Grafik başlığı
-        figsize (tuple): Grafik boyutu
-        normalize (bool): Normalize edilsin mi?
-        
-    Returns:
-        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
     """
     cm = confusion_matrix(y_true, y_pred)
-    
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        fmt = '.2f'
-    else:
-        fmt = 'd'
-    
-    plt.figure(figsize=figsize)
-    sns.heatmap(cm, annot=True, fmt=fmt, cmap='Blues',
-               xticklabels=class_names,
-               yticklabels=class_names)
+    fig = plt.figure(figsize=VISUALIZATION_CONFIG['figsize'])
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['Normal', 'Fraud'],
+                yticklabels=['Normal', 'Fraud'])
     plt.title(title)
     plt.ylabel('Gerçek Sınıf')
     plt.xlabel('Tahmin Edilen Sınıf')
     plt.tight_layout()
-    
-    return plt.gcf()
+    return fig
 
 
-def plot_roc_curve(y_true, y_proba, title='ROC Curve', figsize=(8, 6)):
+def plot_roc_curve(y_true, y_probs, model_name):
     """
-    ROC eğrisini çizer.
-    
-    Args:
-        y_true (array): Gerçek etiketler
-        y_proba (array): Pozitif sınıf olasılıkları
-        title (str): Grafik başlığı
-        figsize (tuple): Grafik boyutu
-        
-    Returns:
-        tuple: (Figure, AUC değeri)
+    ROC eğrisini görselleştirir.
     """
-    fpr, tpr, _ = roc_curve(y_true, y_proba)
-    roc_auc = auc(fpr, tpr)
+    fpr, tpr, _ = roc_curve(y_true, y_probs)
+    roc_auc = roc_auc_score(y_true, y_probs)
     
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=VISUALIZATION_CONFIG['figsize'])
     plt.plot(fpr, tpr, label=f'ROC AUC = {roc_auc:.4f}')
     plt.plot([0, 1], [0, 1], 'k--')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(title)
+    plt.title(f'ROC Curve - {model_name}')
     plt.legend(loc="lower right")
     plt.grid(True)
     plt.tight_layout()
-    
-    return plt.gcf(), roc_auc
+    return fig
 
 
-def plot_precision_recall_curve(y_true, y_proba, title='Precision-Recall Curve', figsize=(8, 6)):
+def plot_precision_recall_curve(y_true, y_probs, model_name):
     """
-    Kesinlik-Duyarlılık eğrisini çizer.
-    
-    Args:
-        y_true (array): Gerçek etiketler
-        y_proba (array): Pozitif sınıf olasılıkları
-        title (str): Grafik başlığı
-        figsize (tuple): Grafik boyutu
-        
-    Returns:
-        tuple: (Figure, PR AUC değeri)
+    Precision-Recall eğrisini görselleştirir.
     """
-    precision, recall, _ = precision_recall_curve(y_true, y_proba)
-    pr_auc = auc(recall, precision)
+    precision, recall, _ = precision_recall_curve(y_true, y_probs)
+    pr_auc = average_precision_score(y_true, y_probs)
     
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=VISUALIZATION_CONFIG['figsize'])
     plt.plot(recall, precision, label=f'PR AUC = {pr_auc:.4f}')
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title(title)
+    plt.title(f'Precision-Recall Curve - {model_name}')
     plt.legend(loc="upper right")
     plt.grid(True)
     plt.tight_layout()
-    
-    return plt.gcf(), pr_auc
+    return fig
 
 
 def plot_classification_report(report, title='Sınıflandırma Raporu', figsize=(12, 7)):
@@ -337,35 +298,30 @@ def plot_model_comparison_pr(models_dict, X_test, y_test, title='Model Karşıla
     return plt.gcf()
 
 
-def plot_feature_importance(feature_importance, top_n=20, title='Özellik Önem Sıralaması', figsize=(12, 10)):
+def plot_feature_importance(importance_df, model_name):
     """
-    Özellik önem sıralamasını görselleştirir.
+    Özellik önemliliklerini görselleştirir.
     
     Args:
-        feature_importance (pd.DataFrame): 'feature' ve 'importance' sütunlarını içeren DataFrame
-        top_n (int): Gösterilecek özellik sayısı
-        title (str): Grafik başlığı
-        figsize (tuple): Grafik boyutu
-        
-    Returns:
-        matplotlib.figure.Figure: Oluşturulan grafik nesnesi
+        importance_df (pd.DataFrame): Özellik önemliliklerini içeren DataFrame
+        model_name (str): Model adı
     """
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=VISUALIZATION_CONFIG['figsize'])
+    plt.title(f'Feature Importance - {model_name}')
     
-    # En önemli N özelliği seç
-    top_features = feature_importance.head(top_n)
+    # Önemlilik değerlerine göre sırala
+    importance_df = importance_df.sort_values('importance', ascending=False)
     
-    # Özellik önemini görselleştirelim
-    ax = sns.barplot(x='importance', y='feature', data=top_features)
+    # Renk paleti oluştur
+    colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(importance_df)))
     
-    # Değerleri çubukların yanına ekleyelim
-    for i, v in enumerate(top_features['importance']):
-        ax.text(v + 0.001, i, f"{v:.4f}", va='center')
-    
-    plt.title(f'{title} (Top {top_n})')
+    # Çubuk grafik
+    plt.bar(range(len(importance_df)), importance_df['importance'],
+            color=colors)
+    plt.xticks(range(len(importance_df)), importance_df['feature'],
+               rotation=45, ha='right')
     plt.tight_layout()
-    
-    return plt.gcf()
+    return fig
 
 
 def plot_threshold_optimization(y_test, y_proba, title='Eşik Değeri Optimizasyonu', figsize=(10, 6)):
